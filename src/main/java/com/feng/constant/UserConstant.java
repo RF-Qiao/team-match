@@ -1,5 +1,7 @@
 package com.feng.constant;
 
-public class UserConstant {
+public interface UserConstant {
 
+    //普通用户
+     int DEFAULT_ROLE = 0;
 }

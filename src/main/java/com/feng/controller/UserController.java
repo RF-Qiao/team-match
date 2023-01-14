@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
+import static com.feng.constant.UserConstant.DEFAULT_ROLE;
+
 @RestController
 @CrossOrigin
 @RequestMapping("/index")
@@ -99,7 +101,7 @@ public class UserController {
         String header = request.getHeader("Authorization");
         String substring = header.substring(7);
         Integer verify = TokenUtils.verify(substring);
-        if (verify==0){
+        if (verify==DEFAULT_ROLE){
             throw  new BusinessException(ErrorCode.NOT_AUTH,"不是管理员无法查看");
         }
     }
