@@ -11,7 +11,6 @@ import java.util.Map;
 public class TokenUtils {
     //设置过期时间
     private static final long EXPIRE_DATE = 30 * 60 * 1000;
-
     //token秘钥
     private static final String TOKEN_SECRET = "ZCfasfhuaUUHufguGuwu2020BQWE";
 
@@ -40,11 +39,11 @@ public class TokenUtils {
         return "Bearer " + token;
     }
 
+    /**
+     * @desc 验证token，通过返回true
+     * @params [token]需要校验的串
+     **/
     public static Integer verify(String token) {
-        /**
-         * @desc 验证token，通过返回true
-         * @params [token]需要校验的串
-         **/
         try {
             //密钥及加密算法
             Map<String, Claim> claims = JWT.decode(token).getClaims();
@@ -55,10 +54,8 @@ public class TokenUtils {
         }
     }
 
-    public static Date datadecode(String token) {
-
+    public static Date dataDecode(String token) {
         Date claims = JWT.decode(token).getExpiresAt();
-
         return claims;
     }
 
