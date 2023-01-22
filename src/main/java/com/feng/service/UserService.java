@@ -2,6 +2,8 @@ package com.feng.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.feng.pojo.User;
 
+import java.util.List;
+
 
 public interface UserService extends IService<User> {
 
@@ -28,4 +30,11 @@ public interface UserService extends IService<User> {
      * @return
      */
     User register(String userName,String userPassword, String checkPassword);
+
+    /**
+     * 根据标签查询用户
+     * @param tagNameList
+     * @return
+     */
+    List<User> searchUserByTags(List<String> tagNameList);
 }

@@ -12,6 +12,7 @@
             <result property="email" column="email" jdbcType="VARCHAR"/>
             <result property="userStatus" column="userStatus" jdbcType="INTEGER"/>
             <result property="phone" column="phone" jdbcType="VARCHAR"/>
+        <result property="tags" column="tags" jdbcType="VARCHAR"/>
             <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
             <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
             <result property="isDelete" column="isDelete" jdbcType="INTEGER"/>
@@ -19,7 +20,7 @@
 
     <sql id="Base_Column_List">
         id,userName,userPassword,
-        gender,email,userStatus,
+        gender,email,userStatus,tags,
         phone,createTime,updateTime,
         isDelete
     </sql>

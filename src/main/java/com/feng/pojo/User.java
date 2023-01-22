@@ -2,6 +2,7 @@ package com.feng.pojo;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -54,6 +55,10 @@ public class User implements Serializable {
      * 电话
      */
     private String phone;
+    /**
+     * 标签
+     */
+    private String tags;
 
     /**
      * 创建时间
@@ -68,6 +73,7 @@ public class User implements Serializable {
     /**
      * 是否删除
      */
+    @TableLogic
     private Integer isDelete;
 
     @TableField(exist = false)

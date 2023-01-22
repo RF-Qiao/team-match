@@ -20,7 +20,7 @@ import static com.feng.constant.UserConstant.DEFAULT_ROLE;
 
 @RestController
 @CrossOrigin
-@RequestMapping("/index")
+@RequestMapping("/api/user")
 public class UserController {
     @Autowired
     private UserService userService;
@@ -74,6 +74,9 @@ public class UserController {
         QueryWrapper<User> wrapper = new QueryWrapper<>();
         wrapper.like("userName", userName);
         List<User> list = userService.list(wrapper);
+        if (list.isEmpty()){
+            throw  new BusinessException(ErrorCode.NULL_ERROR,"无用户信息");
+        }
         return ResultUtils.success(list);
     }
 
@@ -91,6 +94,20 @@ public class UserController {
         wrapper.eq("userName", userName);
         userService.remove(wrapper);
         return ResultUtils.success("删除成功");
+    }
+
+    /**
+     * \根据标签查询用户
+     * @param tagNameList
+     * @param request
+     * @return
+     */
+    @PostMapping("/search/tags")
+    public BaseResponse searchTags(@RequestBody  List<String> tagNameList, HttpServletRequest request) {
+        //是否为管理员
+        // isAdmin(request);
+        List<User> users = userService.searchUserByTags(tagNameList);
+        return ResultUtils.success(users);
     }
 
     /**

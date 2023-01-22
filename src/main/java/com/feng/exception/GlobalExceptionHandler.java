@@ -17,9 +17,9 @@ public class GlobalExceptionHandler {
         return ResultUtils.error(ErrorCode.SYSTEM_ERROR,e.getMessage(),e.getDescription());
     }
 
-//    @ExceptionHandler(RuntimeException.class)
-//    public BaseResponse runtimeExceptionHandler(RuntimeException e) {
-//        log.error("runtimeException", e);
-//        return ResultUtils.error(ErrorCode.SYSTEM_ERROR, e.getMessage());
-//    }
+    @ExceptionHandler(RuntimeException.class)
+    public BaseResponse runtimeExceptionHandler(RuntimeException e) {
+        log.error("runtimeException", e);
+        return ResultUtils.error(ErrorCode.SYSTEM_ERROR, e.getMessage());
+    }
 }

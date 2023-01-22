@@ -1,5 +1,6 @@
 package com.feng.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.feng.common.ErrorCode;
 import com.feng.exception.BusinessException;
@@ -7,12 +8,15 @@ import com.feng.mapper.UserMapper;
 import com.feng.pojo.User;
 import com.feng.service.UserService;
 import com.feng.utils.MD5;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import java.util.stream.Collectors;
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements UserService {
     //正则表达式
@@ -85,5 +89,31 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
             return user;
     }
 
-
+    @Override
+    public List<User> searchUserByTags(List<String> tagNameList){
+        if (tagNameList==null){
+            throw new BusinessException(ErrorCode.NULL_ERROR);
+        }
+        //查询所有用户
+        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        List<User> usersList= userMapper.selectList(wrapper);
+        return usersList.stream().filter(user -> {
+            String tags = user.getTags();
+            Gson gson = new Gson();
+            // json 反序列化为Java对象
+            //set o(1)
+            Set<String> tempTagNameSet = gson.fromJson(tags, new TypeToken<Set<String>>() {}.getType());
+                //集合要判断为空！！
+            //tempTagNameSet = Optional.ofNullable(tempTagNameSet).orElse(new HashSet<>());
+            if (CollectionUtils.isEmpty(tempTagNameSet)){
+                return false;
+            }
+            for (String tagName: tagNameList){
+                if (!tempTagNameSet.contains(tagName)){
+                    return false;
+                }
+            }
+            return true;
+        }).map(this::getSafetyUser).collect(Collectors.toList());
+    }
 }
