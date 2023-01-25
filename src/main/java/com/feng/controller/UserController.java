@@ -1,8 +1,10 @@
 package com.feng.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.feng.common.BaseResponse;
 import com.feng.common.ErrorCode;
 import com.feng.common.ResultUtils;
+import com.feng.constant.UserConstant;
 import com.feng.exception.BusinessException;
 import com.feng.pojo.User;
 import com.feng.pojo.request.LoginUser;
@@ -14,10 +16,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import static com.feng.constant.UserConstant.DEFAULT_ROLE;
+import static com.feng.constant.UserConstant.*;
 
 @RestController
 @CrossOrigin
@@ -52,13 +55,12 @@ public class UserController {
     @PostMapping("/login")
     public BaseResponse userLogin(@RequestBody LoginUser loginUser, HttpServletRequest request) {
         //是否为管理员
-        String header = request.getHeader("HttpServletRequest");
         if (StringUtils.isAnyBlank(loginUser.getUserName(), loginUser.getUserPassword())) {
             throw new BusinessException(ErrorCode.NULL_ERROR);
         }
         String userName = loginUser.getUserName();
         String userPassword = loginUser.getUserPassword();
-        User user = userService.userLogin(userName, userPassword);
+        User user = userService.userLogin(userName, userPassword,request);
         String token = TokenUtils.token(user.getId(), user.getUserStatus());
         return ResultUtils.success(user, token);
     }
@@ -72,7 +74,7 @@ public class UserController {
     @GetMapping("/query")
     public BaseResponse query(String userName, HttpServletRequest request) {
         //是否为管理员
-        isAdmin(request);
+        userService.isAdmin(request);
         QueryWrapper<User> wrapper = new QueryWrapper<>();
         wrapper.like("userName", userName);
         List<User> list = userService.list(wrapper);
@@ -91,42 +93,28 @@ public class UserController {
     @DeleteMapping("/delete")
     public BaseResponse delete(String userName, HttpServletRequest request) {
         //是否为管理员
-        isAdmin(request);
-        Integer integer = userService.deleteUserByUserName(userName);
-        if (integer==0){
-            return ResultUtils.success("不存在用户");
+        if (!userService.isadmin(request)){
+            throw new BusinessException(ErrorCode.NOT_AUTH);
         }
+        if (userName==null){
+            throw new BusinessException(ErrorCode.PARAM_ERROR);
+        }
+        userService.deleteUserByUserName(userName);
         return ResultUtils.success("删除成功");
     }
 
     /**
      * \根据标签查询用户
      * @param tagNameList
-     * @param request
      * @return
      */
     @PostMapping("/search/tags")
-    public BaseResponse searchTags(@RequestBody  List<String> tagNameList, HttpServletRequest request) {
-        //是否为管理员
-        // isAdmin(request);
+    public BaseResponse searchTags(@RequestBody  List<String> tagNameList) {
+        if (CollectionUtils.isEmpty(tagNameList)){
+            throw new BusinessException(ErrorCode.NULL_ERROR);
+        }
         List<User> users = userService.searchUserByTags(tagNameList);
         return ResultUtils.success(users);
-    }
-
-    /**
-     * 是否为管理员
-     * @param request
-     */
-    public void isAdmin(HttpServletRequest request){
-        String header = request.getHeader("Authorization");
-        String substring = header.substring(7);
-        Integer verify = TokenUtils.verify(substring);
-        if (verify==DEFAULT_ROLE){
-            throw  new BusinessException(ErrorCode.NOT_AUTH,"不是管理员无法查看");
-        }
-        if (new Date().compareTo(TokenUtils.dataDecode(substring)) > 0){
-            throw  new BusinessException(ErrorCode.NOT_AUTH,"token过期 请重新登录");
-        }
     }
 }
 

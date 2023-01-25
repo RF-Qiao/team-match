@@ -14,6 +14,11 @@ spring:
   mvc:
     path match:
       matching-strategy: ant_path_matcher
+# redis配置
+  redis:
+    port: 6379
+    host: localhost
+    database: 1
 
 mybatis:
   mapper-locations:UserMapper.xml
