@@ -1,4 +1,4 @@
-package com.feng.pojo.vo;
+package com.feng.pojo.request;
 
 
 import lombok.AllArgsConstructor;

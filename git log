@@ -96,8 +96,8 @@ mode 100644,000000..100644[m
 [32m +import com.feng.common.ResultUtils;[m
 [32m +import com.feng.exception.BusinessException;[m
 [32m +import com.feng.pojo.User;[m
-[32m +import com.feng.pojo.vo.LoginUser;[m
-[32m +import com.feng.pojo.vo.RequestUser;[m
+[32m +import com.feng.pojo.request.LoginUser;[m
+[32m +import com.feng.pojo.request.RequestUser;[m
 [32m +import com.feng.service.UserService;[m
 [32m +import com.feng.utils.TokenUtils;[m
 [32m +import org.apache.commons.lang3.StringUtils;[m

@@ -31,6 +31,8 @@ public interface UserService extends IService<User> {
      */
     User register(String userName,String userPassword, String checkPassword);
 
+    Integer deleteUserByUserName(String username);
+
     /**
      * 根据标签查询用户
      * @param tagNameList

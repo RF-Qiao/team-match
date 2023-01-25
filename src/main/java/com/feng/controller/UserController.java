@@ -5,10 +5,11 @@ import com.feng.common.ErrorCode;
 import com.feng.common.ResultUtils;
 import com.feng.exception.BusinessException;
 import com.feng.pojo.User;
-import com.feng.pojo.vo.LoginUser;
-import com.feng.pojo.vo.RequestUser;
+import com.feng.pojo.request.LoginUser;
+import com.feng.pojo.request.RequestUser;
 import com.feng.service.UserService;
 import com.feng.utils.TokenUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,7 @@ import static com.feng.constant.UserConstant.DEFAULT_ROLE;
 @RestController
 @CrossOrigin
 @RequestMapping("/api/user")
+@Slf4j
 public class UserController {
     @Autowired
     private UserService userService;
@@ -90,9 +92,10 @@ public class UserController {
     public BaseResponse delete(String userName, HttpServletRequest request) {
         //是否为管理员
         isAdmin(request);
-        QueryWrapper<User> wrapper = new QueryWrapper<>();
-        wrapper.eq("userName", userName);
-        userService.remove(wrapper);
+        Integer integer = userService.deleteUserByUserName(userName);
+        if (integer==0){
+            return ResultUtils.success("不存在用户");
+        }
         return ResultUtils.success("删除成功");
     }
 

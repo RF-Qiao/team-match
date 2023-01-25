@@ -3,6 +3,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.feng.common.ErrorCode;
+import com.feng.common.ResultUtils;
 import com.feng.exception.BusinessException;
 import com.feng.mapper.UserMapper;
 import com.feng.pojo.User;
@@ -13,7 +14,9 @@ import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.util.*;
+
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -87,6 +90,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
             user.setUserPassword(MD5.md5(userPassword));
             userMapper.insert(user);
             return user;
+    }
+
+    @Override
+    public Integer deleteUserByUserName(String userName) {
+        if (userName==null){
+            throw new BusinessException(ErrorCode.NULL_ERROR);
+        }
+        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        wrapper.eq("userName", userName);
+        wrapper.eq("isDelete",0);
+        return userMapper.delete(wrapper);
     }
 
     @Override
