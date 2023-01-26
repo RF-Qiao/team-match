@@ -1,10 +1,10 @@
 package com.feng.controller;
+
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.feng.common.BaseResponse;
 import com.feng.common.ErrorCode;
 import com.feng.common.ResultUtils;
-import com.feng.constant.UserConstant;
 import com.feng.exception.BusinessException;
 import com.feng.pojo.User;
 import com.feng.pojo.request.LoginUser;
@@ -14,13 +14,14 @@ import com.feng.utils.TokenUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.web.bind.annotation.*;
-import javax.servlet.http.HttpServletRequest;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
 
-import static com.feng.constant.UserConstant.*;
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @CrossOrigin
@@ -29,8 +30,13 @@ import static com.feng.constant.UserConstant.*;
 public class UserController {
     @Autowired
     private UserService userService;
+
+    @Resource
+    private RedisTemplate<String,Object> redisTemplate;
+
     /**
      * 注册
+     *
      * @param requestUser
      * @return
      */
@@ -49,6 +55,7 @@ public class UserController {
 
     /**
      * 登录
+     *
      * @param loginUser
      * @return
      */
@@ -60,13 +67,14 @@ public class UserController {
         }
         String userName = loginUser.getUserName();
         String userPassword = loginUser.getUserPassword();
-        User user = userService.userLogin(userName, userPassword,request);
+        User user = userService.userLogin(userName, userPassword, request);
         String token = TokenUtils.token(user.getId(), user.getUserStatus());
         return ResultUtils.success(user, token);
     }
 
     /**
      * 查询
+     *
      * @param userName
      * @param request
      * @return
@@ -78,14 +86,15 @@ public class UserController {
         QueryWrapper<User> wrapper = new QueryWrapper<>();
         wrapper.like("userName", userName);
         List<User> list = userService.list(wrapper);
-        if (list.isEmpty()){
-            throw  new BusinessException(ErrorCode.NULL_ERROR,"无用户信息");
+        if (list.isEmpty()) {
+            throw new BusinessException(ErrorCode.NULL_ERROR, "无用户信息");
         }
         return ResultUtils.success(list);
     }
 
     /**
      * 删除
+     *
      * @param userName
      * @param request
      * @return
@@ -93,10 +102,10 @@ public class UserController {
     @DeleteMapping("/delete")
     public BaseResponse delete(String userName, HttpServletRequest request) {
         //是否为管理员
-        if (!userService.isadmin(request)){
+        if (!userService.isadmin(request)) {
             throw new BusinessException(ErrorCode.NOT_AUTH);
         }
-        if (userName==null){
+        if (userName == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR);
         }
         userService.deleteUserByUserName(userName);
@@ -105,16 +114,38 @@ public class UserController {
 
     /**
      * \根据标签查询用户
+     *
      * @param tagNameList
      * @return
      */
     @PostMapping("/search/tags")
-    public BaseResponse searchTags(@RequestBody  List<String> tagNameList) {
-        if (CollectionUtils.isEmpty(tagNameList)){
+    public BaseResponse searchTags(@RequestBody List<String> tagNameList) {
+        if (CollectionUtils.isEmpty(tagNameList)) {
             throw new BusinessException(ErrorCode.NULL_ERROR);
         }
         List<User> users = userService.searchUserByTags(tagNameList);
         return ResultUtils.success(users);
+    }
+
+
+    @GetMapping("/recommend")
+    public BaseResponse recommendUsers(HttpServletRequest request) {
+        User loginUser = userService.loginUser(request);
+        String redisKey = String.format("feng:user:recommend:%s", loginUser.getId());
+        //如果有缓存直接读数据
+        ValueOperations<String, Object> objectValueOperations = redisTemplate.opsForValue();
+        Object result = objectValueOperations.get(redisKey);
+        if (result!=null){
+            return ResultUtils.success(result);
+        }
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        List<User> userList = userService.list(queryWrapper);
+        try {
+            objectValueOperations.set(redisKey,userList,30000, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            log.error("redis set key error", e);
+        }
+        return ResultUtils.success(userList);
     }
 }
 
