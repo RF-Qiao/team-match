@@ -161,10 +161,28 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
             throw  new BusinessException(ErrorCode.NOT_AUTH,"时间过长，请重新登录");
         }
     }
+
+    /**
+     * 是否为管理员session
+     * @param request
+     * @return
+     */
     @Override
     public boolean isadmin(HttpServletRequest request) {
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         User user = (User) userObj;
         return (user != null && user.getUserStatus() == ADMIN_ROLE);
+    }
+
+    @Override
+    public User loginUser(HttpServletRequest request){
+        if (request==null){
+            throw new BusinessException(ErrorCode.NULL_ERROR);
+        }
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        if (userObj==null){
+            throw new BusinessException(ErrorCode.NULL_ERROR);
+        }
+        return (User)userObj;
     }
 }
