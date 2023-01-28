@@ -1,5 +1,4 @@
 package com.feng.utils;
-
 import java.security.MessageDigest;
 
 public class MD5 {

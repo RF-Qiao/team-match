@@ -23,8 +23,6 @@ public interface UserService extends IService<User> {
      */
     User getSafetyUser(User suser );
 
-
-
     /**
      * 用户注册
      * @param userName
@@ -56,5 +54,23 @@ public interface UserService extends IService<User> {
      */
     boolean isadmin(HttpServletRequest request);
 
+    /**
+     * 获得当前用户
+     * @param request
+     * @return
+     */
     User loginUser(HttpServletRequest request);
+
+    /**
+     * 用户登出
+     * @return
+     */
+    void userLogOut(HttpServletRequest request);
+
+    /**
+     * 获得自己信息
+     * @param request
+     * @return
+     */
+    User getCurrentUser(HttpServletRequest request);
 }

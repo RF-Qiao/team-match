@@ -146,10 +146,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
         }).map(this::getSafetyUser).collect(Collectors.toList());
     }
     @Override
-    /**
-     * 是否为管理员
-     * @param request
-     */
     public void isAdmin(HttpServletRequest request){
         String header = request.getHeader("Authorization");
         String substring = header.substring(7);
@@ -161,12 +157,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
             throw  new BusinessException(ErrorCode.NOT_AUTH,"时间过长，请重新登录");
         }
     }
-
-    /**
-     * 是否为管理员session
-     * @param request
-     * @return
-     */
     @Override
     public boolean isadmin(HttpServletRequest request) {
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
@@ -184,5 +174,29 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
             throw new BusinessException(ErrorCode.NULL_ERROR);
         }
         return (User)userObj;
+    }
+    @Override
+    public void userLogOut(HttpServletRequest request){
+        if (request==null){
+            throw  new BusinessException(ErrorCode.NULL_ERROR);
+        }
+        if (request.getSession().getAttribute(USER_LOGIN_STATE)==null){
+            throw new BusinessException(ErrorCode.NULL_ERROR,"已退出");
+        }
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
+    }
+
+    @Override
+    public User getCurrentUser(HttpServletRequest request){
+        if (request==null){
+            throw new BusinessException(ErrorCode.NULL_ERROR);
+        }
+        Object UserObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User currentUser = (User)UserObj;
+        if (currentUser==null){
+            throw new BusinessException(ErrorCode.NULL_ERROR,"未登录");
+        }
+        User user = userMapper.selectById(currentUser.getId());
+        return getSafetyUser(user);
     }
 }

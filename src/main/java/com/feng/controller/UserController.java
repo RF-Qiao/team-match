@@ -17,11 +17,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.web.bind.annotation.*;
-
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @RestController
 @CrossOrigin
@@ -82,14 +82,17 @@ public class UserController {
     @GetMapping("/query")
     public BaseResponse query(String userName, HttpServletRequest request) {
         //是否为管理员
-        userService.isAdmin(request);
+        if (!userService.isadmin(request)){
+            throw new BusinessException(ErrorCode.NOT_AUTH);
+        }
         QueryWrapper<User> wrapper = new QueryWrapper<>();
         wrapper.like("userName", userName);
         List<User> list = userService.list(wrapper);
         if (list.isEmpty()) {
             throw new BusinessException(ErrorCode.NULL_ERROR, "无用户信息");
         }
-        return ResultUtils.success(list);
+        List<User> userList = list.stream().map(user -> userService.getSafetyUser(user)).collect(Collectors.toList());
+        return ResultUtils.success(userList);
     }
 
     /**
@@ -127,7 +130,11 @@ public class UserController {
         return ResultUtils.success(users);
     }
 
-
+    /**
+     * 首页推荐用户
+     * @param request
+     * @return
+     */
     @GetMapping("/recommend")
     public BaseResponse recommendUsers(HttpServletRequest request) {
         User loginUser = userService.loginUser(request);
@@ -147,5 +154,34 @@ public class UserController {
         }
         return ResultUtils.success(userList);
     }
-}
 
+    /**
+     * 获得自己信息
+     * @param request
+     * @return
+     */
+    @GetMapping("/getCurrentUser")
+    public BaseResponse getCurrentUser(HttpServletRequest request) {
+        if (request==null){
+            throw new BusinessException(ErrorCode.NULL_ERROR);
+        }
+        User currentUser = userService.getCurrentUser(request);
+        return ResultUtils.success(currentUser);
+    }
+
+    /**
+     * 用户登出
+     * @param request
+     * @return
+     */
+    @GetMapping("/userLogOut")
+    public BaseResponse userLogOut( HttpServletRequest request) {
+        if (request==null) {
+            throw new BusinessException(ErrorCode.NULL_ERROR);
+        }
+        userService.userLogOut(request);
+
+        return ResultUtils.success("退出成功");
+    }
+
+}

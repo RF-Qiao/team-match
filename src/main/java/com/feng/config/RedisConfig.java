@@ -14,8 +14,6 @@ import java.lang.reflect.Method;
 @Configuration
 @EnableCaching
 public class RedisConfig extends CachingConfigurerSupport {
-
-
 	@Bean
 	public KeyGenerator keyGenerator() {
         return new KeyGenerator() {
