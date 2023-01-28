@@ -1,13 +1,31 @@
 package com.feng.service;
 
-import com.feng.pojo.Team;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.feng.pojo.Team;
+import com.feng.pojo.User;
+import com.feng.pojo.request.TeamQuery;
+import com.feng.pojo.vo.TeamUserVO;
+
+import java.util.List;
 
 /**
 * @author fengfeng
-* @description 针对表【team(队伍)】的数据库操作Service
-* @createDate 2023-01-25 13:44:48
+*
 */
 public interface TeamService extends IService<Team> {
+    /**
+     * 创建队伍
+     * @param team
+     * @param loginUser
+     * @return
+     */
+    int addTeam(Team team, User loginUser);
 
+    /**
+     * 查询队伍
+     * @param teamQuery
+     * @param isadmin
+     * @return
+     */
+    List<TeamUserVO> searchTeams(TeamQuery teamQuery, Boolean isadmin);
 }

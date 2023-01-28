@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/user")
 @Slf4j
 public class UserController {
-    @Autowired
+    @Resource
     private UserService userService;
 
     @Resource

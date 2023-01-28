@@ -1,23 +1,17 @@
-package com.feng.pojo;
+package com.feng.pojo.request;
 
 import com.baomidou.mybatisplus.annotation.*;
+import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Date;
-import lombok.Data;
 
 /**
  * 队伍
  * @TableName team
  */
-@TableName(value ="team")
 @Data
-public class Team implements Serializable {
-    /**
-     * id
-     */
-    @TableId(type = IdType.AUTO)
-    private Integer id;
+public class TeamRequest implements Serializable {
 
     /**
      * 队伍名称
@@ -42,7 +36,7 @@ public class Team implements Serializable {
     /**
      * 用户id（队长 id）
      */
-    private Integer userId;
+    private int userId;
 
     /**
      * 0 - 公开，1 - 私有，2 - 加密
@@ -54,22 +48,5 @@ public class Team implements Serializable {
      */
     private String password;
 
-    /**
-     * 创建时间
-     */
-    private Date createTime;
 
-    /**
-     * 
-     */
-    private Date updateTime;
-
-    /**
-     * 是否删除
-     */
-    @TableLogic
-    private Integer isDelete;
-
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
 }

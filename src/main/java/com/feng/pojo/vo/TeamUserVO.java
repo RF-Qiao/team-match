@@ -1,23 +1,19 @@
-package com.feng.pojo;
+package com.feng.pojo.vo;
 
-import com.baomidou.mybatisplus.annotation.*;
+import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Date;
-import lombok.Data;
 
-/**
- * 队伍
- * @TableName team
- */
-@TableName(value ="team")
 @Data
-public class Team implements Serializable {
+public class TeamUserVO implements Serializable {
+
+    private static final long serialVersionUID = 1899063007109226944L;
+
     /**
      * id
      */
-    @TableId(type = IdType.AUTO)
-    private Integer id;
+    private Long id;
 
     /**
      * 队伍名称
@@ -40,9 +36,9 @@ public class Team implements Serializable {
     private Date expireTime;
 
     /**
-     * 用户id（队长 id）
+     * 用户id
      */
-    private Integer userId;
+    private Long userId;
 
     /**
      * 0 - 公开，1 - 私有，2 - 加密
@@ -50,26 +46,27 @@ public class Team implements Serializable {
     private Integer status;
 
     /**
-     * 密码
-     */
-    private String password;
-
-    /**
      * 创建时间
      */
     private Date createTime;
 
     /**
-     * 
+     * 更新时间
      */
     private Date updateTime;
 
     /**
-     * 是否删除
+     * 创建人用户信息
      */
-    @TableLogic
-    private Integer isDelete;
+    private UserVO createUser;
 
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
+    /**
+     * 已加入的用户数
+     */
+    private Integer hasJoinNum;
+
+    /**
+     * 是否已加入队伍
+     */
+    private boolean hasJoin = false;
 }
