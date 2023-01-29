@@ -4,6 +4,7 @@ import com.feng.common.PageRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -11,7 +12,8 @@ import java.util.List;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class TeamQuery extends PageRequest {
+public class TeamQuery extends PageRequest   implements Serializable {
+    public static final Long serialVersionUID=1L;
     /**
      * id
      */

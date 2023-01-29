@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.feng.pojo.Team;
 import com.feng.pojo.User;
 import com.feng.pojo.request.TeamQuery;
+import com.feng.pojo.request.TeamUpdateRequest;
 import com.feng.pojo.vo.TeamUserVO;
 
 import java.util.List;
@@ -28,4 +29,13 @@ public interface TeamService extends IService<Team> {
      * @return
      */
     List<TeamUserVO> searchTeams(TeamQuery teamQuery, Boolean isadmin);
+
+    /**
+     * 更新队伍信息
+     * @param teamUpdateRequest
+     * @param loginUser
+     * @return
+     */
+
+    Boolean updateTeam(TeamUpdateRequest teamUpdateRequest, User loginUser);
 }

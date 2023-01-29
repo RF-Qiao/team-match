@@ -10,6 +10,7 @@ import com.feng.pojo.Team;
 import com.feng.pojo.User;
 import com.feng.pojo.UserTeam;
 import com.feng.pojo.request.TeamQuery;
+import com.feng.pojo.request.TeamUpdateRequest;
 import com.feng.pojo.vo.TeamUserVO;
 import com.feng.pojo.vo.UserVO;
 import com.feng.service.TeamService;
@@ -22,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.*;
+
+import static com.feng.constant.UserConstant.ADMIN_ROLE;
 
 /**
  * @author fengfeng
@@ -121,7 +124,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team> implements Te
             wrapper.like("name", name);
         }
         //2. 不展示已过期的队伍（根据过期时间筛选）   ge小于
-        wrapper.and(qw -> qw.le("expireTime", new Date())).or().isNull("expireTime");
+        wrapper.and(qw -> qw.ge("expireTime", new Date())).or().isNull("expireTime");
         List<Team> teamList = this.list(wrapper);
         if (teamList == null) {
             return new ArrayList<>();
@@ -141,16 +144,16 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team> implements Te
         //5. 关联查询已加入队伍的用户信息
         for (Team team : teamList) {
             Integer userId = team.getUserId();
-            if (userId==null){
+            if (userId == null) {
                 continue;
             }
             User user = userService.getById(userId);
             TeamUserVO teamUserVO = new TeamUserVO();
-            BeanUtils.copyProperties(team,teamUserVO);
+            BeanUtils.copyProperties(team, teamUserVO);
             //用户脱敏
-            if (user!=null){
+            if (user != null) {
                 UserVO userVO = new UserVO();
-                BeanUtils.copyProperties(user,userVO);
+                BeanUtils.copyProperties(user, userVO);
                 teamUserVO.setCreateUser(userVO);
             }
             teamUserVOList.add(teamUserVO);
@@ -159,4 +162,34 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team> implements Te
     }
 
 
+    @Override
+    public Boolean updateTeam(TeamUpdateRequest teamUpdateRequest, User loginUser) {
+//        1. 判断请求参数是否为空
+        if (teamUpdateRequest == null) {
+            throw new BusinessException(ErrorCode.NULL_ERROR);
+        }
+//        2. 查询队伍是否存在
+        QueryWrapper<Team> queryWrapper = new QueryWrapper<>();
+        QueryWrapper<Team> wrapper = queryWrapper.eq("id", teamUpdateRequest.getId());
+        if (count(wrapper) == 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "队伍不存在");
+        }
+//        3. 只有管理员或者队伍的创建者可以修改
+        if (loginUser.getUserStatus() != ADMIN_ROLE && teamUpdateRequest.getUserId() != loginUser.getId()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "权限不足，不可修改");
+        }
+//        4. 如果用户传入的新值和老值一致，就不用 update 了（可自行实现，降低数据库使用次数）
+
+//        5. **如果队伍状态改为加密，必须要有密码**
+        if (teamUpdateRequest.getStatus() == TeamStatusConstant.SECRET.getKey()) {
+            if (teamUpdateRequest.getPassword() == null) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "加密房间必须要设置密码");
+            }
+        }
+//        6. 更新成功
+        Team upteTeam = new Team();
+        BeanUtils.copyProperties(teamUpdateRequest, upteTeam);
+        return this.updateById(upteTeam);
+
+    }
 }
