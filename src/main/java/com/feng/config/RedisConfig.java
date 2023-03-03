@@ -5,10 +5,9 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.interceptor.KeyGenerator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 
 import java.lang.reflect.Method;
-
+import java.util.HashMap;
 /**
  * @author feng
  */
@@ -20,6 +19,7 @@ public class RedisConfig extends CachingConfigurerSupport {
         return new KeyGenerator() {
             @Override
             public Object generate(Object target, Method method, Object... params) {
+                HashMap<Object, Object> objectObjectHashMap = new HashMap<>();
                 StringBuilder sb = new StringBuilder();
                 sb.append(target.getClass().getName());
                 sb.append(method.getName());

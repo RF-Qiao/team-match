@@ -38,4 +38,19 @@ public interface TeamService extends IService<Team> {
      */
 
     Boolean updateTeam(TeamUpdateRequest teamUpdateRequest, User loginUser);
+
+    /**
+     * 根据Id获取当前队伍信息
+     * @param teamId
+     * @return
+     */
+    Team getTeamById(Long teamId);
+
+    /**
+     * 根基id删除队伍
+     * @param id
+     * @param loginUser
+     * @return
+     */
+    boolean deleteTeam(Long id, User loginUser);
 }
