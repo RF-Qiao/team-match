@@ -26,8 +26,8 @@ public class SwaggerConfig {
 
     private ApiInfo apiInfo() {
         return new ApiInfoBuilder()
-                .title("用户后台管理系统")
-                .description("用户后台中心接口文档")
+                .title("组队匹配系统")
+                .description("组队匹配系统中心接口文档")
                 .termsOfServiceUrl("https://gitee.com/f132")
                 .contact(new Contact("feng", "https://gitee.com/f132", "1328678738@qq.com"))
                 .version("1.0")
