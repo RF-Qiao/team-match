@@ -15,7 +15,7 @@ public class TeamUpdateRequest implements Serializable {
     /**
      * id
      */
-    private Long id;
+    private Integer id;
     /**
      * 队伍名称
      */
@@ -49,6 +49,4 @@ public class TeamUpdateRequest implements Serializable {
      * 密码
      */
     private String password;
-
-
 }

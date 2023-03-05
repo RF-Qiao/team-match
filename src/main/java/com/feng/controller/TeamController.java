@@ -1,5 +1,4 @@
 package com.feng.controller;
-
 import com.feng.common.BaseResponse;
 import com.feng.common.ErrorCode;
 import com.feng.common.ResultUtils;
@@ -13,6 +12,7 @@ import com.feng.pojo.vo.TeamUserVO;
 import com.feng.service.TeamService;
 import com.feng.service.UserService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,8 +21,8 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @RestController
-@CrossOrigin
-@RequestMapping("/api/team")
+@CrossOrigin(origins = {"http://localhost:3000"})
+@RequestMapping("/team")
 @Slf4j
 public class TeamController {
     @Resource
@@ -37,6 +37,7 @@ public class TeamController {
      * @param request
      * @return
      */
+    @RequiresPermissions("role")
     @PostMapping("/add")
     public BaseResponse addTeam(@RequestBody TeamRequest teamRequest, HttpServletRequest request) {
         if (teamRequest == null) {
@@ -67,7 +68,7 @@ public class TeamController {
     }
 
     /**
-     * 查询队伍
+     * 更新队伍
      *
      * @param teamUpdateRequest
      * @param request
@@ -82,6 +83,26 @@ public class TeamController {
         Boolean result = teamService.updateTeam(teamUpdateRequest, currentUser);
         if (!result){
             throw new BusinessException(ErrorCode.SYSTEM_ERROR,"更新失败");
+        }
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 删除队伍
+     *
+     * @param id
+     * @param request
+     * @return
+     */
+    @PostMapping("/delete")
+    public BaseResponse deleteTeam(Long id,HttpServletRequest request) {
+        if (id == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR);
+        }
+        User currentUser = userService.getCurrentUser(request);
+        Boolean result = teamService.deleteTeam(id, currentUser);
+        if (!result){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"删除失败");
         }
         return ResultUtils.success(result);
     }

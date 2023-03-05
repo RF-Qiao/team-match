@@ -10,11 +10,6 @@ import org.springframework.stereotype.Service;
 * @author fengfeng
 */
 @Service
-public class UserTeamServiceImpl extends ServiceImpl<UserTeamMapper, UserTeam>
-    implements UserTeamService{
+public class UserTeamServiceImpl extends ServiceImpl<UserTeamMapper, UserTeam> implements UserTeamService{
 
 }
-
-
-
-

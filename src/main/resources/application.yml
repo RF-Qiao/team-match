@@ -4,13 +4,16 @@ server:
     # session 失效时间1天
     session:
       timeout: 86400
+    context-path: /api
 spring:
+  profiles:
+    active: dev
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
     password: 123456
     url: jdbc:mysql://localhost:3306/test?serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
-
+  #  SpringBoot和swagger冲突
   mvc:
     path match:
       matching-strategy: ant_path_matcher

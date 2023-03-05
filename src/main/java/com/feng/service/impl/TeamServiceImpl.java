@@ -22,7 +22,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 
 import static com.feng.constant.UserConstant.ADMIN_ROLE;
 
@@ -192,4 +195,41 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team> implements Te
         return this.updateById(upteTeam);
 
     }
+
+    @Override
+    public Team getTeamById(Long teamId){
+        if (teamId== null){
+            throw  new BusinessException(ErrorCode.PARAM_ERROR,"请求为空");
+        }
+        Team team = this.getById(teamId);
+        if (team==null){
+            throw new BusinessException(ErrorCode.PARAM_ERROR,"不存在队伍信息");
+        }
+        return team;
+    }
+
+    @Override
+    public boolean deleteTeam(Long id, User loginUser){
+        if (id==null || loginUser==null){
+            throw new BusinessException(ErrorCode.PARAM_ERROR,"用户为空");
+        }
+        //校验是否为当前队伍
+        Team team = getTeamById(id);
+        Integer teamId= team.getId();
+        //校验是否为队长
+        if (team.getUserId()!=loginUser.getId()){
+            throw new BusinessException(ErrorCode.PARAM_ERROR,"无权限");
+        }
+        //移除所有队伍信息
+        QueryWrapper<UserTeam> queryWrapper = new QueryWrapper<>();
+         queryWrapper.eq("teamId",teamId);
+        //移除队伍关系信息
+        boolean remove = userTeamService.remove(queryWrapper);
+        if (!remove){
+            throw new BusinessException(ErrorCode.PARAM_ERROR,"删除队伍关系表失败");
+        }
+        return this.removeById(teamId);
+    }
+
+
 }

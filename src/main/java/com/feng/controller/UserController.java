@@ -1,5 +1,4 @@
 package com.feng.controller;
-
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.feng.common.BaseResponse;
@@ -13,7 +12,6 @@ import com.feng.service.UserService;
 import com.feng.utils.TokenUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.web.bind.annotation.*;
@@ -24,8 +22,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RestController
-@CrossOrigin
-@RequestMapping("/api/user")
+@CrossOrigin(origins = {"http://localhost:3000"})
+@RequestMapping("/user")
 @Slf4j
 public class UserController {
     @Resource
@@ -61,15 +59,14 @@ public class UserController {
      */
     @PostMapping("/login")
     public BaseResponse userLogin(@RequestBody LoginUser loginUser, HttpServletRequest request) {
-        //是否为管理员
         if (StringUtils.isAnyBlank(loginUser.getUserName(), loginUser.getUserPassword())) {
             throw new BusinessException(ErrorCode.NULL_ERROR);
         }
         String userName = loginUser.getUserName();
         String userPassword = loginUser.getUserPassword();
         User user = userService.userLogin(userName, userPassword, request);
-        String token = TokenUtils.token(user.getId(), user.getUserStatus());
-        return ResultUtils.success(user, token);
+       // String token = TokenUtils.token(user.getId(), user.getUserStatus());
+        return ResultUtils.success(user);
     }
 
     /**
@@ -121,8 +118,8 @@ public class UserController {
      * @param tagNameList
      * @return
      */
-    @PostMapping("/search/tags")
-    public BaseResponse searchTags(@RequestBody List<String> tagNameList) {
+    @GetMapping("/search/tags")
+    public BaseResponse searchTags(@RequestParam(required = false) List<String> tagNameList) {
         if (CollectionUtils.isEmpty(tagNameList)) {
             throw new BusinessException(ErrorCode.NULL_ERROR);
         }
@@ -160,7 +157,7 @@ public class UserController {
      * @param request
      * @return
      */
-    @GetMapping("/getCurrentUser")
+    @GetMapping("/current")
     public BaseResponse getCurrentUser(HttpServletRequest request) {
         if (request==null){
             throw new BusinessException(ErrorCode.NULL_ERROR);
@@ -183,5 +180,4 @@ public class UserController {
 
         return ResultUtils.success("退出成功");
     }
-
 }
