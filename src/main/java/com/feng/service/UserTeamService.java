@@ -1,6 +1,6 @@
 package com.feng.service;
 
-import com.feng.pojo.UserTeam;
+import com.feng.model.domin.UserTeam;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**

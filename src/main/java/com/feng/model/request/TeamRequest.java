@@ -1,6 +1,5 @@
-package com.feng.pojo.request;
+package com.feng.model.request;
 
-import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.io.Serializable;

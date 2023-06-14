@@ -1,24 +1,25 @@
 package com.feng.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.feng.common.ErrorCode;
 import com.feng.exception.BusinessException;
 import com.feng.mapper.UserMapper;
-import com.feng.pojo.User;
+import com.feng.model.domin.User;
 import com.feng.service.UserService;
-import com.feng.utils.MD5;
-import com.feng.utils.TokenUtils;
+import com.feng.utils.AlgorithmUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.math3.util.Pair;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.DigestUtils;
+
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -26,117 +27,181 @@ import java.util.stream.Collectors;
 import static com.feng.constant.UserConstant.*;
 
 @Service
+@Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements UserService {
-    //正则表达式
-    public static final String DEFAULT_QUERY_REGEX = "[!$^&*+=|{}';'\",<>/?~！#￥%……&*——|{}【】‘；：”“'。，、？]";
-
-    @Autowired
+    private  static final  String avturl ="https://img1.baidu.com/it/u=413643897,2296924942&fm=253&app=138&size=w931&n=0&f=JPEG&fmt=auto?sec=1682874000&t=7a5d10db34a03479b5bdfddd6fc98760";
+    /**
+     * 盐值，混淆密码
+     */
+    private static final String SALT = "niuma";
+    @Resource
     private UserMapper userMapper;
+//    @Resource
+//    private RabbitTemplate rabbitTemplate;
 
     @Override
-    public User userLogin(String userName, String userPassword,HttpServletRequest request) {
-        if (StringUtils.isAnyBlank(userName, userPassword)) {
-            throw new BusinessException(ErrorCode.NULL_ERROR, "用户名或密码为空");
+    public long userRegister(String userAccount, String userPassword, String checkPassword, String planetCode, String avatarUrl) {
+
+        // 校验
+        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword, planetCode)) {
+            // todo 修改为自定义异常
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
-        if (Pattern.compile(DEFAULT_QUERY_REGEX).matcher(userName).find()) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户名账号存在特殊字符");
+        if (userAccount.length() < 4) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账户长度小于4位");
         }
+        if (userPassword.length() < 8 || checkPassword.length() < 8) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度小于8位");
+        }
+        if (planetCode.length() > 12) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "编号长度大于12位");
+        }
+
+        // 账户不包含特殊字符
+        String regEx = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
+        Matcher matcher = Pattern.compile(regEx).matcher(userAccount);
+        if (matcher.find()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账户包含特殊字符");
+        }
+
+        // 账户不能重复
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("userName", userName);
-        queryWrapper.eq("userPassword", MD5.md5(userPassword));
-        if (!userMapper.exists(queryWrapper)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户名或密码错误");
+        queryWrapper.eq("userAccount", userAccount);
+        long count = this.count(queryWrapper);
+        if (count > 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账户重复");
         }
-        //用户脱敏
-        User safetyUser = getSafetyUser(userMapper.selectOne(queryWrapper));
-        //记录用户登录态
-        request.getSession().setAttribute(USER_LOGIN_STATE,safetyUser);
+
+        // 编号不能重复
+        queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("planetCode", planetCode);
+        count = this.count(queryWrapper);
+        if (count > 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "编号重复");
+        }
+
+        // 密码与校验密码相同
+        if (!userPassword.equals(checkPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码与校验密码不相同");
+        }
+
+        // 加密
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+
+        // 插入数据
+        User user = new User();
+        user.setUserAccount(userAccount);
+        user.setUserPassword(encryptPassword);
+        user.setPlanetCode(planetCode);
+        user.setUsername(userAccount);
+        user.setAvatarUrl(avturl);
+        boolean result = this.save(user);
+        if (!result) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "插入失败");
+        }
+//        rabbitTemplate.convertAndSend(MqConstants.USER_EXCHANGE,MqConstants.USER_INSERT_KEY,user.getId());
+        return user.getId();
+    }
+
+    @Override
+    public User userLogin(String userAccount, String userPassword, HttpServletRequest request) {
+        // 校验
+        if (StringUtils.isAnyBlank(userAccount, userPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号或密码为空");
+        }
+        if (userAccount.length() < 4) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号长度小于4");
+        }
+        if (userPassword.length() < 8) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度小于8");
+        }
+
+        // 账户不包含特殊字符
+        String regEx = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
+        Matcher matcher = Pattern.compile(regEx).matcher(userAccount);
+        if (matcher.find()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账户包含特殊字符");
+        }
+
+        // 加密
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("userAccount", userAccount);
+        queryWrapper.eq("userPassword", encryptPassword);
+        User user = userMapper.selectOne(queryWrapper);
+        // 用户不存在
+        if (user == null) {
+            log.info("user login failed,userAccount can not match userPassword");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
+        }
+
+        // 脱敏
+        User safetyUser = getSafetyUser(user);
+
+        // 记录用户登录态
+        request.getSession().setAttribute(USER_LOGIN_STATE, safetyUser);
+
+        return safetyUser;
+    }
+
+    /**
+     * 用户脱敏
+     *
+     * @param originUser
+     * @return
+     */
+    @Override
+    public User getSafetyUser(User originUser) {
+        if (originUser == null) {
+            return null;
+        }
+        User safetyUser = new User();
+        safetyUser.setId(originUser.getId());
+        safetyUser.setUsername(originUser.getUsername());
+        safetyUser.setUserAccount(originUser.getUserAccount());
+        safetyUser.setAvatarUrl(originUser.getAvatarUrl());
+        safetyUser.setGender(originUser.getGender());
+        safetyUser.setPhone(originUser.getPhone());
+        safetyUser.setContactInfo(originUser.getContactInfo());
+        safetyUser.setProfile(originUser.getProfile());
+        safetyUser.setUserStatus(originUser.getUserStatus());
+        safetyUser.setCreateTime(originUser.getCreateTime());
+        safetyUser.setUserRole(originUser.getUserRole());
+        safetyUser.setPlanetCode(originUser.getPlanetCode());
+        safetyUser.setTags(originUser.getTags());
         return safetyUser;
     }
 
     @Override
-    public User getSafetyUser(User suser ) {
-        User user = new User();
-        user.setId(suser.getId());
-        user.setUserName(suser.getUserName());
-        user.setGender(suser.getGender());
-        user.setEmail(suser.getEmail());
-        user.setUserStatus(suser.getUserStatus());
-        user.setPhone(suser.getPhone());
-        user.setCreateTime(suser.getCreateTime());
-        return user;
+    public int userLogout(HttpServletRequest request) {
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
+        return 1;
     }
 
-
+    /**
+     * 根据标签搜索用户（内存过滤）
+     *
+     * @param tagNameList
+     * @return
+     */
     @Override
-    public User register(String userName, String userPassword, String checkPassword) {
-        if (StringUtils.isBlank(userName) || StringUtils.isBlank(userPassword)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "参数为空");
+    public List<User> searchUsersByTags(List<String> tagNameList) {
+        if (org.springframework.util.CollectionUtils.isEmpty(tagNameList)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        if (userName.length() < 4) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户名过短");
-        }
-        if (userPassword.length() < 6) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户名密码过短");
-        }
-        //用户名账号不含特殊字符
-        Matcher matcher = Pattern.compile(DEFAULT_QUERY_REGEX).matcher(userName);
-        if (matcher.find()) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户名账号存在特殊字符");
-        }
-        if (!userPassword.equals(checkPassword)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "二次密码不一致");
-        }
-        //用户名是否存在
-        QueryWrapper<User> wrapper = new QueryWrapper<>();
-        QueryWrapper<User> userName1 = wrapper.eq("userName", userName);
-        Boolean count = userMapper.exists(userName1);
-        if (count) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户名存在 请重新注入");
-        }
-        //注册
-        User user = new User();
-        user.setUserName(userName);
-        user.setUserPassword(MD5.md5(userPassword));
-        userMapper.insert(user);
-        return user;
-    }
+        //方法二： 利用内存查询
+        Gson gson = new Gson();
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
 
-    @Override
-    public Integer deleteUserByUserName(String userName) {
-        if (userName == null) {
-            throw new BusinessException(ErrorCode.NULL_ERROR);
-        }
-        QueryWrapper<User> wrapper = new QueryWrapper<>();
-        wrapper.eq("userName", userName);
-        wrapper.eq("isDelete", 0);
-        int delete = userMapper.delete(wrapper);
-        if (delete == 0) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "不存在用户");
-        }
-        return delete;
-    }
-
-    @Override
-    public List<User> searchUserByTags(List<String> tagNameList) {
-        if (tagNameList == null) {
-            throw new BusinessException(ErrorCode.NULL_ERROR);
-        }
-        //查询所有用户
-        QueryWrapper<User> wrapper = new QueryWrapper<>();
-        List<User> usersList = userMapper.selectList(wrapper);
-        return usersList.stream().filter(user -> {
-            String tags = user.getTags();
-            Gson gson = new Gson();
-            // json 反序列化为Java对象
-            //set o(1)
-            Set<String> tempTagNameSet = gson.fromJson(tags, new TypeToken<Set<String>>() {
-            }.getType());
-            //集合要判断为空！！
-            //tempTagNameSet = Optional.ofNullable(tempTagNameSet).orElse(new HashSet<>());
-            if (CollectionUtils.isEmpty(tempTagNameSet)) {
+        List<User> userList = userMapper.selectList(queryWrapper);
+        return userList.stream().filter(user -> {
+            String tagStr = user.getTags();
+            if (StringUtils.isBlank(tagStr)) {
                 return false;
             }
+            Set<String> tempTagNameSet = gson.fromJson(tagStr, new TypeToken<Set<String>>() {
+            }.getType());
+            tempTagNameSet = Optional.ofNullable(tempTagNameSet).orElse(new HashSet<>());
             for (String tagName : tagNameList) {
                 if (!tempTagNameSet.contains(tagName)) {
                     return false;
@@ -144,59 +209,132 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
             }
             return true;
         }).map(this::getSafetyUser).collect(Collectors.toList());
+
     }
-    @Override
-    public void isAdmin(HttpServletRequest request){
-        String header = request.getHeader("Authorization");
-        String substring = header.substring(7);
-        Integer verify = TokenUtils.verify(substring);
-        if (verify==DEFAULT_ROLE){
-            throw  new BusinessException(ErrorCode.NOT_AUTH,"不是管理员无法查看");
+
+    /**
+     * 根据标签搜索用户（SQL查询版）
+     *
+     * @param tagNameList
+     * @return
+     */
+    @Deprecated
+    private List<User> searchUsersByTagsBySQL(List<String> tagNameList) {
+        if (org.springframework.util.CollectionUtils.isEmpty(tagNameList)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        if (new Date().compareTo(TokenUtils.dataDecode(substring)) > 0){
-            throw  new BusinessException(ErrorCode.NOT_AUTH,"时间过长，请重新登录");
+//     方法一：利用SQL查询
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        for (String tagName : tagNameList) {
+            queryWrapper = queryWrapper.like("tags", tagName);
         }
+        List<User> userList = userMapper.selectList(queryWrapper);
+        return userList.stream().map(this::getSafetyUser).collect(Collectors.toList());
     }
+
     @Override
-    public boolean isadmin(HttpServletRequest request) {
+    public User getLoginUser(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        if (userObj == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN);
+        }
+        return (User) userObj;
+    }
+
+    @Override
+    public int updateUser(User user, User loginUser) {
+        long userId = user.getId();
+        if (userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        if(StringUtils.isBlank(user.getUsername()) || user.getUsername().length() >= 8){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户昵称不为空且不能大于8位噢");
+        }
+        if(StringUtils.isNotBlank(user.getProfile()) &&  user.getProfile().length() >= 30){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户简介不超过30个字喔");
+        }
+        //不是管理员并且改的不是自己的信息
+        if (!isAdmin(loginUser) && userId != loginUser.getId()) {
+            throw new BusinessException(ErrorCode.NO_AUTH);
+        }
+        User oldUser = userMapper.selectById(userId);
+        if (oldUser == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        int update = userMapper.updateById(user);
+        if(update>0){
+//            rabbitTemplate.convertAndSend(MqConstants.USER_EXCHANGE,MqConstants.USER_INSERT_KEY,user.getId());
+        }
+        return update;
+    }
+
+    @Override
+    public boolean isAdmin(HttpServletRequest request) {
+        // 鉴权
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         User user = (User) userObj;
-        return (user != null && user.getUserStatus() == ADMIN_ROLE);
+        return user != null && user.getUserRole() == ADMIN_ROLE;
     }
 
     @Override
-    public User loginUser(HttpServletRequest request){
-        if (request==null){
-            throw new BusinessException(ErrorCode.NULL_ERROR);
-        }
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        if (userObj==null){
-            throw new BusinessException(ErrorCode.NULL_ERROR);
-        }
-        return (User)userObj;
-    }
-    @Override
-    public void userLogOut(HttpServletRequest request){
-        if (request==null){
-            throw  new BusinessException(ErrorCode.NULL_ERROR);
-        }
-        if (request.getSession().getAttribute(USER_LOGIN_STATE)==null){
-            throw new BusinessException(ErrorCode.NULL_ERROR,"已退出");
-        }
-        request.getSession().removeAttribute(USER_LOGIN_STATE);
+    public boolean isAdmin(User user) {
+        return user != null && user.getUserRole() == ADMIN_ROLE;
     }
 
+
     @Override
-    public User getCurrentUser(HttpServletRequest request){
-        if (request==null){
-            throw new BusinessException(ErrorCode.NULL_ERROR);
+    public List<User> matchUsers(long num, User loginUser) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("id", "tags");
+        queryWrapper.isNotNull("tags");
+        queryWrapper.ne("tags", "[]");
+        List<User> userList = this.list(queryWrapper);
+        String tags = loginUser.getTags();
+        Gson gson = new Gson();
+        List<String> tagList = gson.fromJson(tags, new TypeToken<List<String>>() {
+        }.getType());
+        if(CollectionUtils.isEmpty(tagList)){
+            return new ArrayList<>();
         }
-        Object UserObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User currentUser = (User)UserObj;
-        if (currentUser==null){
-            throw new BusinessException(ErrorCode.NULL_ERROR,"未登录");
+        // 用户列表的下标 => 相似度
+        List<Pair<User, Long>> list = new ArrayList<>();
+        // 依次计算所有用户和当前用户的相似度
+        for (int i = 0; i < userList.size(); i++) {
+            User user = userList.get(i);
+            String userTags = user.getTags();
+            // 无标签或者为当前用户自己
+            if (StringUtils.isBlank(userTags) || user.getId() == loginUser.getId()) {
+                continue;
+            }
+            List<String> userTagList = gson.fromJson(userTags, new TypeToken<List<String>>() {
+            }.getType());
+            // 计算分数
+            long distance = AlgorithmUtils.minDistance(tagList, userTagList);
+            list.add(new Pair<>(user, distance));
         }
-        User user = userMapper.selectById(currentUser.getId());
-        return getSafetyUser(user);
+        // 按编辑距离由小到大排序
+        List<Pair<User, Long>> topUserPairList = list.stream()
+                .sorted((a, b) -> (int) (a.getValue() - b.getValue()))
+                .limit(num)
+                .collect(Collectors.toList());
+        // 原本顺序的 userId 列表
+        List<Long> userIdList = topUserPairList.stream().map(pair -> pair.getKey().getId()).collect(Collectors.toList());
+        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+        userQueryWrapper.in("id", userIdList);
+        // 1, 3, 2
+        // User1、User2、User3
+        // 1 => User1, 2 => User2, 3 => User3
+        Map<Long, List<User>> userIdUserListMap = this.list(userQueryWrapper)
+                .stream()
+                .map(this::getSafetyUser)
+                .collect(Collectors.groupingBy(User::getId));
+        List<User> finalUserList = new ArrayList<>();
+        for (Long userId : userIdList) {
+            finalUserList.add(userIdUserListMap.get(userId).get(0));
+        }
+        return finalUserList;
     }
 }

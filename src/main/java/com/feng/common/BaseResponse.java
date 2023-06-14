@@ -3,9 +3,15 @@ import lombok.Data;
 import java.io.Serializable;
 @Data
 public class BaseResponse<T> implements Serializable {
+
+    private static final long serialVersionUID = -6091485650629828815L;
+
     private int code;
+
     private T data;
+
     private String message;
+
     private String description;
 
     public BaseResponse(int code, T data, String message, String description) {
@@ -15,15 +21,18 @@ public class BaseResponse<T> implements Serializable {
         this.description = description;
     }
 
-    public  BaseResponse(ErrorCode errorCode,String message){
-        this(errorCode.getCode(),null,message,"");
+
+    public BaseResponse(int code, T data, String message) {
+        this(code, data, message, "");
     }
 
-    public  BaseResponse(ErrorCode errorCode,String message,String description){
-        this(errorCode.getCode(),null,message,description);
+    public BaseResponse(int code, T data) {
+        this(code, data, "", "");
     }
 
-    public  BaseResponse(ErrorCode errorCode){
-        this(errorCode.getCode(),null,null,"");
+
+    public BaseResponse(ErrorCode errorCode) {
+        this(errorCode.getCode(), null, errorCode.getMessage(), errorCode.getDescription());
     }
+
 }

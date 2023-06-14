@@ -1,6 +1,6 @@
 package com.feng.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.feng.pojo.User;
+import com.feng.model.domin.User;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

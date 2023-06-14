@@ -1,11 +1,13 @@
 package com.feng.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.feng.pojo.Team;
-import com.feng.pojo.User;
-import com.feng.pojo.request.TeamQuery;
-import com.feng.pojo.request.TeamUpdateRequest;
-import com.feng.pojo.vo.TeamUserVO;
+import com.feng.model.domin.Team;
+import com.feng.model.domin.User;
+import com.feng.model.request.TeamJoinRequest;
+import com.feng.model.dto.TeamQuery;
+import com.feng.model.request.TeamQuitRequest;
+import com.feng.model.request.TeamUpdateRequest;
+import com.feng.model.vo.TeamUserVo;
 
 import java.util.List;
 
@@ -16,41 +18,65 @@ import java.util.List;
 public interface TeamService extends IService<Team> {
     /**
      * 创建队伍
+     *
      * @param team
      * @param loginUser
      * @return
      */
-    int addTeam(Team team, User loginUser);
+    long addTeam(Team team, User loginUser);
 
     /**
-     * 查询队伍
+     * 搜索队伍
+     *
      * @param teamQuery
-     * @param isadmin
+     * @param isAdmin
      * @return
      */
-    List<TeamUserVO> searchTeams(TeamQuery teamQuery, Boolean isadmin);
+    List<TeamUserVo> listTeams(TeamQuery teamQuery, boolean isAdmin);
 
     /**
-     * 更新队伍信息
+     * 更新队伍
+     *
      * @param teamUpdateRequest
      * @param loginUser
      * @return
      */
-
-    Boolean updateTeam(TeamUpdateRequest teamUpdateRequest, User loginUser);
-
-    /**
-     * 根据Id获取当前队伍信息
-     * @param teamId
-     * @return
-     */
-    Team getTeamById(Long teamId);
+    boolean updateTeam(TeamUpdateRequest teamUpdateRequest, User loginUser);
 
     /**
-     * 根基id删除队伍
-     * @param id
+     * 加入队伍
+     *
+     * @param teamJoinRequest
      * @param loginUser
      * @return
      */
-    boolean deleteTeam(Long id, User loginUser);
+    Boolean joinTeam(TeamJoinRequest teamJoinRequest, User loginUser);
+
+    /**
+     * 退出队伍
+     *
+     * @param teamQuitRequest
+     * @param loginUser
+     * @return
+     */
+    Boolean quitTeam(TeamQuitRequest teamQuitRequest, User loginUser);
+
+    /**
+     * 删除解散队伍
+     *
+     * @param id
+     * @return
+     */
+    Boolean deleteTeam(Long id, User loginUser);
+
+    /**
+     * 通过id队伍
+     *
+     * @param id
+     * @return
+     */
+    TeamUserVo getTeamById(long id, boolean isAdmin, User loginUser);
+
+
+    List<Team> getTeamByUserId(Long userId);
 }

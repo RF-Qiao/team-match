@@ -1,4 +1,4 @@
-package com.feng.pojo;
+package com.feng.model.domin;
 
 import com.baomidou.mybatisplus.annotation.*;
 
@@ -13,63 +13,60 @@ import lombok.Data;
 @TableName(value ="team")
 @Data
 public class Team implements Serializable {
+    @TableField(exist = false)
+    private static final long serialVersionUID = 1L;
     /**
      * id
      */
     @TableId(type = IdType.AUTO)
-    private Integer id;
-
+    private Long id;
     /**
      * 队伍名称
      */
     private String name;
-
     /**
      * 描述
      */
     private String description;
-
+    /**
+     * 公告
+     */
+    private String announce;
+    /**
+     * 描述
+     */
+    private String avatarUrl;
     /**
      * 最大人数
      */
     private Integer maxNum;
-
     /**
      * 过期时间
      */
     private Date expireTime;
-
     /**
-     * 用户id（队长 id）
+     * 用户id
      */
-    private Integer userId;
-
+    private Long userId;
     /**
      * 0 - 公开，1 - 私有，2 - 加密
      */
     private Integer status;
-
     /**
      * 密码
      */
     private String password;
-
     /**
      * 创建时间
      */
     private Date createTime;
-
     /**
-     * 
+     *
      */
     private Date updateTime;
-
     /**
      * 是否删除
      */
     @TableLogic
     private Integer isDelete;
-
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
 }

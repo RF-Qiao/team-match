@@ -1,6 +1,6 @@
 package com.feng.mapper;
 
-import com.feng.pojo.UserTeam;
+import com.feng.model.domin.UserTeam;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**

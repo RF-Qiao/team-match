@@ -1,4 +1,4 @@
-package com.feng.pojo.request;
+package com.feng.model.dto;
 
 import com.feng.common.PageRequest;
 import lombok.Data;
@@ -12,17 +12,17 @@ import java.util.List;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class TeamQuery extends PageRequest   implements Serializable {
-    public static final Long serialVersionUID=1L;
+public class TeamQuery extends PageRequest implements Serializable {
     /**
      * id
      */
-    private Integer id;
+    private Long id;
 
     /**
-     * id 列表
+     * id列表
      */
-    private List<Long> idList;
+    private List<Long> ids;
+
 
     /**
      * 搜索关键词（同时对队伍名称和描述搜索）
@@ -53,4 +53,5 @@ public class TeamQuery extends PageRequest   implements Serializable {
      * 0 - 公开，1 - 私有，2 - 加密
      */
     private Integer status;
+
 }

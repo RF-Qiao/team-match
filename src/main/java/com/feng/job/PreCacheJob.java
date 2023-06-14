@@ -1,7 +1,7 @@
 package com.feng.job;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.feng.pojo.User;
+import com.feng.model.domin.User;
 import com.feng.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;

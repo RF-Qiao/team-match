@@ -1,183 +1,218 @@
 package com.feng.controller;
+
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.feng.common.BaseResponse;
+import com.feng.common.DeleteRequest;
 import com.feng.common.ErrorCode;
 import com.feng.common.ResultUtils;
 import com.feng.exception.BusinessException;
-import com.feng.pojo.User;
-import com.feng.pojo.request.LoginUser;
-import com.feng.pojo.request.RequestUser;
+import com.feng.model.domin.User;
+import com.feng.model.domin.UserTeam;
+import com.feng.model.dto.UserQuery;
+import com.feng.model.dto.request.UserLoginRequest;
+import com.feng.model.dto.request.UserRegisterRequest;
+import com.feng.model.vo.UserVo;
 import com.feng.service.UserService;
-import com.feng.utils.TokenUtils;
-import lombok.extern.slf4j.Slf4j;
+import com.feng.service.UserTeamService;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import static com.feng.constant.UserConstant.USER_LOGIN_STATE;
 
+/**
+ * @author feng
+ * @create 2022-03-19 16:59
+ */
 @RestController
-@CrossOrigin(origins = {"http://localhost:3000"})
 @RequestMapping("/user")
-@Slf4j
+@CrossOrigin("http://localhost:3000")
 public class UserController {
     @Resource
     private UserService userService;
 
     @Resource
-    private RedisTemplate<String,Object> redisTemplate;
+    private UserTeamService userTeamService;
 
-    /**
-     * 注册
-     *
-     * @param requestUser
-     * @return
-     */
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
+
     @PostMapping("/register")
-    public BaseResponse register(@RequestBody RequestUser requestUser) {
-        if (StringUtils.isAnyBlank(requestUser.getUserName(), requestUser.getUserPassword())) {
-            throw new BusinessException(ErrorCode.NULL_ERROR);
+    public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
+        if (userRegisterRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        String userName = requestUser.getUserName();
-        String userPassword = requestUser.getUserPassword();
-        String checkPassword = requestUser.getCheckPassword();
-        User register = userService.register(userName, userPassword, checkPassword);
-        String token = TokenUtils.token(register.getId(), register.getUserStatus());
-        return ResultUtils.success("注册成功", token);
+        String userAccount = userRegisterRequest.getUserAccount();
+        String userPassword = userRegisterRequest.getUserPassword();
+        String checkPassword = userRegisterRequest.getCheckPassword();
+        String planetCode = userRegisterRequest.getPlanetCode();
+        String avatarUrl = userRegisterRequest.getAvatarUrl();
+        if (!StringUtils.isNumeric(planetCode)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "编号必须为数字噢！");
+        }
+        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword, planetCode)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        long id = userService.userRegister(userAccount, userPassword, checkPassword, planetCode, avatarUrl);
+        return ResultUtils.success(id);
     }
 
-    /**
-     * 登录
-     *
-     * @param loginUser
-     * @return
-     */
     @PostMapping("/login")
-    public BaseResponse userLogin(@RequestBody LoginUser loginUser, HttpServletRequest request) {
-        if (StringUtils.isAnyBlank(loginUser.getUserName(), loginUser.getUserPassword())) {
-            throw new BusinessException(ErrorCode.NULL_ERROR);
+    public BaseResponse<User> userLogin(
+            @RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
+        if (userLoginRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        String userName = loginUser.getUserName();
-        String userPassword = loginUser.getUserPassword();
-        User user = userService.userLogin(userName, userPassword, request);
-       // String token = TokenUtils.token(user.getId(), user.getUserStatus());
+        String userAccount = userLoginRequest.getUserAccount();
+        String userPassword = userLoginRequest.getUserPassword();
+
+        if (StringUtils.isAnyBlank(userAccount, userPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        User user = userService.userLogin(userAccount, userPassword, request);
+
         return ResultUtils.success(user);
     }
 
-    /**
-     * 查询
-     *
-     * @param userName
-     * @param request
-     * @return
-     */
-    @GetMapping("/query")
-    public BaseResponse query(String userName, HttpServletRequest request) {
-        //是否为管理员
-        if (!userService.isadmin(request)){
-            throw new BusinessException(ErrorCode.NOT_AUTH);
+    @PostMapping("/logout")
+    public BaseResponse<Integer> userLogout(HttpServletRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        QueryWrapper<User> wrapper = new QueryWrapper<>();
-        wrapper.like("userName", userName);
-        List<User> list = userService.list(wrapper);
-        if (list.isEmpty()) {
-            throw new BusinessException(ErrorCode.NULL_ERROR, "无用户信息");
-        }
-        List<User> userList = list.stream().map(user -> userService.getSafetyUser(user)).collect(Collectors.toList());
-        return ResultUtils.success(userList);
+        int userLogout = userService.userLogout(request);
+        return ResultUtils.success(userLogout);
     }
 
-    /**
-     * 删除
-     *
-     * @param userName
-     * @param request
-     * @return
-     */
-    @DeleteMapping("/delete")
-    public BaseResponse delete(String userName, HttpServletRequest request) {
-        //是否为管理员
-        if (!userService.isadmin(request)) {
-            throw new BusinessException(ErrorCode.NOT_AUTH);
+    @GetMapping("/current")
+    public BaseResponse<User> getCurrentUser(HttpServletRequest request) {
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User userCurrent = (User) userObj;
+        if (userCurrent == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN);
         }
-        if (userName == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR);
-        }
-        userService.deleteUserByUserName(userName);
-        return ResultUtils.success("删除成功");
+        User user = userService.getById(userCurrent.getId());
+        // TODO 校验用户是否合法
+        User result = userService.getSafetyUser(user);
+        return ResultUtils.success(result);
     }
 
-    /**
-     * \根据标签查询用户
-     *
-     * @param tagNameList
-     * @return
-     */
-    @GetMapping("/search/tags")
-    public BaseResponse searchTags(@RequestParam(required = false) List<String> tagNameList) {
-        if (CollectionUtils.isEmpty(tagNameList)) {
-            throw new BusinessException(ErrorCode.NULL_ERROR);
-        }
-        List<User> users = userService.searchUserByTags(tagNameList);
-        return ResultUtils.success(users);
-    }
-
-    /**
-     * 首页推荐用户
-     * @param request
-     * @return
-     */
-    @GetMapping("/recommend")
-    public BaseResponse recommendUsers(HttpServletRequest request) {
-        User loginUser = userService.loginUser(request);
-        String redisKey = String.format("feng:user:recommend:%s", loginUser.getId());
-        //如果有缓存直接读数据
-        ValueOperations<String, Object> objectValueOperations = redisTemplate.opsForValue();
-        Object result = objectValueOperations.get(redisKey);
-        if (result!=null){
-            return ResultUtils.success(result);
+    @GetMapping("/search")
+    public BaseResponse<List<User>> searchUsers(String username, HttpServletRequest request) {
+        if (!userService.isAdmin(request)) {
+            throw new BusinessException(ErrorCode.NO_AUTH);
         }
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        List<User> userList = userService.list(queryWrapper);
-        try {
-            objectValueOperations.set(redisKey,userList,30000, TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
-            log.error("redis set key error", e);
+        if (StringUtils.isNotBlank(username)) {
+            queryWrapper.like("username", username);
         }
+        List<User> userList = userService.list(queryWrapper);
+        List<User> result = userList.stream()
+                .map(user -> userService.getSafetyUser(user))
+                .collect(Collectors.toList());
+        return ResultUtils.success(result);
+    }
+
+    @PostMapping("/searchPage")
+    public BaseResponse<Page<User>> searchUsersPage(@RequestBody UserQuery userQuery) {
+        String searchText = userQuery.getSearchText();
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        if (StringUtils.isNotBlank(searchText)) {
+            queryWrapper.like("username", searchText)
+                    .or().like("profile", searchText)
+                    .or().like("tags", searchText);
+        }
+        Page<User> page = new Page<>(userQuery.getPageNum(), userQuery.getPageSize());
+        Page<User> userListPage = userService.page(page, queryWrapper);
+        List<User> userList = userListPage.getRecords();
+        List<User> safetyUserList = userList.stream()
+                .map(user -> userService.getSafetyUser(user))
+                .collect(Collectors.toList());
+        userListPage.setRecords(safetyUserList);
+        return ResultUtils.success(userListPage);
+    }
+
+    @GetMapping("/search/tags")
+    public BaseResponse<List<User>> searchUserByTags(@RequestParam(required = false) List<String> tagList, HttpServletRequest request) {
+        if (CollectionUtils.isEmpty(tagList)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        userService.getLoginUser(request);
+        List<User> userList = userService.searchUsersByTags(tagList);
         return ResultUtils.success(userList);
     }
 
-    /**
-     * 获得自己信息
-     * @param request
-     * @return
-     */
-    @GetMapping("/current")
-    public BaseResponse getCurrentUser(HttpServletRequest request) {
-        if (request==null){
-            throw new BusinessException(ErrorCode.NULL_ERROR);
-        }
-        User currentUser = userService.getCurrentUser(request);
-        return ResultUtils.success(currentUser);
+    @GetMapping("/recommend")
+    public BaseResponse<Page<User>> recommendUsers(long pageSize, long pageNum, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        Page<User> userPage;
+//        String redisKey = String.format("langbei:user:recommend:%s", loginUser.getId());
+//        Page<User> userPage = (Page<User>) redisTemplate.opsForValue().get(redisKey);
+//        if (userPage != null) {
+//            return ResultUtils.success(userPage);
+//        }
+
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        userPage = userService.page(new Page<>(pageNum, pageSize), queryWrapper);
+//        redisTemplate.opsForValue().set(redisKey, userPage, 30, TimeUnit.MINUTES);
+        return ResultUtils.success(userPage);
     }
 
-    /**
-     * 用户登出
-     * @param request
-     * @return
-     */
-    @GetMapping("/userLogOut")
-    public BaseResponse userLogOut( HttpServletRequest request) {
-        if (request==null) {
-            throw new BusinessException(ErrorCode.NULL_ERROR);
+    @PostMapping("/update")
+    public BaseResponse<Integer> updateUser(@RequestBody User user, HttpServletRequest request) {
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        userService.userLogOut(request);
+        User loginUser = userService.getLoginUser(request);
 
-        return ResultUtils.success("退出成功");
+        int result = userService.updateUser(user, loginUser);
+        return ResultUtils.success(result);
     }
+
+    @PostMapping("/delete")
+    @Transactional
+    public BaseResponse<Boolean> deleteUsers(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
+        if (!userService.isAdmin(request)) {
+            throw new BusinessException(ErrorCode.NO_AUTH);
+        }
+        long id = deleteRequest.getId();
+        if (id <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户id小于0");
+        }
+        boolean result = userService.removeById(id);
+        QueryWrapper<UserTeam> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("userId", id);
+        boolean removeUserTeam = userTeamService.remove(queryWrapper);
+        if (result && removeUserTeam) {
+//            rabbitTemplate.convertAndSend(MqConstants.USER_EXCHANGE,MqConstants.USER_DELETE_KEY,id);
+        }
+        return ResultUtils.success(result && removeUserTeam);
+    }
+
+    @GetMapping("/match")
+    public BaseResponse<List<User>> matchUsers(long num, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        List<User> matchUsers = userService.matchUsers(num, loginUser);
+        return ResultUtils.success(matchUsers);
+    }
+
+    @PostMapping("/getUserListByIds")
+    public BaseResponse<List<UserVo>> getUserListByIds(@RequestBody UserQuery userQuery) {
+        List<User> userList = userService.listByIds(userQuery.getIds());
+        List<UserVo> userVoList = userList.stream().map(user -> {
+            UserVo userVo = new UserVo();
+            BeanUtils.copyProperties(user, userVo);
+            return userVo;
+        }).collect(Collectors.toList());
+        return ResultUtils.success(userVoList);
+    }
+
 }

@@ -1,5 +1,5 @@
 package com.feng.mapper;
-import com.feng.pojo.Team;
+import com.feng.model.domin.Team;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 /**
 * @author fengfeng

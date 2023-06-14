@@ -1,6 +1,6 @@
 package com.feng.service;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.feng.pojo.User;
+import com.feng.model.domin.User;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -8,69 +8,78 @@ import java.util.List;
 
 public interface UserService extends IService<User> {
 
-    /**
-     * 用户登录
-     * @param userName
-     * @param userPassword
-     * @return
-     */
-    User userLogin(String userName,String userPassword,HttpServletRequest request);
 
-    /**
-     * 脱敏后的用户信息
-     * @param suser
-     * @return
-     */
-    User getSafetyUser(User suser );
 
     /**
      * 用户注册
-     * @param userName
-     * @param userPassword
-     * @param checkPassword
-     * @return
+     *
+     * @param userAccount   用户账户
+     * @param userPassword  密码
+     * @param checkPassword 校验密码
+     * @param planetCode    星球编号
+     * @return 用户ID
      */
-    User register(String userName,String userPassword, String checkPassword);
-
-    Integer deleteUserByUserName(String username);
+    long userRegister(String userAccount, String userPassword, String checkPassword, String planetCode, String avatarUrl);
 
     /**
-     * 根据标签查询用户
+     * 用户登录
+     *
+     * @param userAccount  用户账户
+     * @param userPassword 密码
+     * @return 脱敏后的用户信息
+     */
+    User userLogin(String userAccount, String userPassword, HttpServletRequest request);
+
+    /**
+     * 获取一个脱敏的用户信息
+     *
+     * @param originUser
+     * @return
+     */
+    User getSafetyUser(User originUser);
+
+    /**
+     * 用户注销
+     *
+     * @param request
+     * @return
+     */
+    int userLogout(HttpServletRequest request);
+
+    /**
+     * 根据标签搜索用户
+     *
      * @param tagNameList
      * @return
      */
-    List<User> searchUserByTags(List<String> tagNameList);
+    List<User> searchUsersByTags(List<String> tagNameList);
 
     /**
-     * 是否为管理员  token
-     * @param request
-     */
-    void isAdmin(HttpServletRequest request);
-
-    /**
-     * 是否为管理员  session
+     * 获取当前用户信息
+     *
      * @param request
      * @return
      */
-    boolean isadmin(HttpServletRequest request);
+    User getLoginUser(HttpServletRequest request);
+
+    int updateUser(User user, User loginUser);
 
     /**
-     * 获得当前用户
+     * 是否为管理员
+     *
      * @param request
-     * @return
+     * @return 是否为管理员
      */
-    User loginUser(HttpServletRequest request);
+    boolean isAdmin(HttpServletRequest request);
 
     /**
-     * 用户登出
-     * @return
+     * 是否为管理员
+     *
+     * @param user
+     * @return 是否为管理员
      */
-    void userLogOut(HttpServletRequest request);
+    boolean isAdmin(User user);
 
-    /**
-     * 获得自己信息
-     * @param request
-     * @return
-     */
-    User getCurrentUser(HttpServletRequest request);
+    List<User> matchUsers(long num, User loginUser);
+
 }
